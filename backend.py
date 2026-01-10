@@ -7,12 +7,12 @@ from fastapi import FastAPI, Body
 from fastapi.middleware.cors import CORSMiddleware
 from ultralytics import YOLO
 
-
 import traceback
 
 
 # --- CONFIGURATION ---
-genai.configure(api_key="AIzaSyCo2WymIycyv4AApuzqUfEFAqNTckN_0hU")
+
+genai.configure(api_key="key")
 model_gemini = genai.GenerativeModel('gemini-2.5-flash-lite')
 model_yolo = YOLO('yolov8n.pt') # Lightweight for speed
 
@@ -50,6 +50,22 @@ def calculate_risk(height_px, width_px, magnitude, ratio):
         if shaking > (stability * GRAVITY_THRESHOLD):
             falls += 1
     return (falls / trials) * 100
+
+
+shared_state = {
+    "magnitude": 5.0,
+    "detections": [],
+    "advice": ""
+}
+
+@app.get("/state")
+async def get_state():
+    return shared_state
+
+@app.post("/update_magnitude")
+async def update_mag(data: dict = Body(...)):
+    shared_state["magnitude"] = float(data.get("magnitude", 5.0))
+    return {"status": "ok"}
 
 @app.post("/analyze")
 async def analyze(data: dict = Body(...)):
@@ -90,6 +106,8 @@ async def analyze(data: dict = Body(...)):
                 "risk": round(risk, 1)
             })
 
+    shared_state["detections"] = detections 
+
     return {"detections": detections}
 
 
@@ -114,7 +132,7 @@ async def recommend(data: dict = Body(...)):
         if not risky_items:
             return {"advice": "Room looks secure! No major hazards detected."}
 
-        prompt = f"In an earthquake, these items might fall: {', '.join(risky_items)}. Provide 3 fix steps."
+        prompt = f"In an earthquake, these items might fall: {', '.join(risky_items)}. Provide a priority order of objects to secure and how, or none of none needed. Keep the response under 100 words in bullet point format."
         
         # Try the real AI
         try:
