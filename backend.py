@@ -15,7 +15,6 @@ import traceback
 genai.configure(api_key="key")
 model_gemini = genai.GenerativeModel('gemini-2.5-flash-lite')
 model_yolo = YOLO('yolov8n.pt') # Lightweight for speed
-
 app = FastAPI()
 
 # Allow React to talk to FastAPI
