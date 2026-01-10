@@ -58,6 +58,10 @@ body {
 .animate-marquee {
   display: flex;
   width: max-content;
-  animation: marquee 100s linear infinite;
+  animation: marquee 90s linear infinite;
+}
+
+.ticker-container:hover .animate-marquee {
+  animation-play-state: paused;
 }
 

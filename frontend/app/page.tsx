@@ -65,13 +65,20 @@ export default function Home() {
         </div>
 
         {/* Live Seismic Ticker with Real Data */}
-        <div className="bg-slate-900 dark:bg-orange-600 overflow-hidden py-1.5 border-y border-slate-800 dark:border-orange-500 group">
-          <div className="animate-marquee whitespace-nowrap flex items-center gap-12 text-[10px] font-bold uppercase tracking-[0.2em] text-white group-hover:[animation-play-state:paused] cursor-default">
+        <div className="ticker-container bg-slate-900 dark:bg-orange-600 overflow-hidden py-1.5 border-y border-slate-800 dark:border-orange-500 cursor-help">
+          <div className="animate-marquee whitespace-nowrap flex items-center gap-12 text-[10px] font-bold uppercase tracking-[0.2em] text-white">
             {quakes.length > 0 ? (
               [...quakes, ...quakes].map((quake, index) => (
                 <span key={`${quake.id}-${index}`} className="flex items-center gap-4">
-                  <span className="text-orange-400 dark:text-slate-900">●</span> 
-                  M {quake.mag.toFixed(1)} - {quake.place} ({quake.time})
+                  <span className="text-orange-400 dark:text-slate-900 font-black">●</span> 
+                  
+                  {/* Magnitude Color Coding */}
+                  <span className={quake.mag >= 4.5 ? "text-red-500 dark:text-white font-black underline decoration-2" : ""}>
+                    M {quake.mag.toFixed(1)}
+                  </span>
+                  
+                  <span className="opacity-90">{quake.place}</span>
+                  <span className="opacity-60">({quake.time})</span>
                 </span>
               ))
             ) : (
