@@ -293,7 +293,8 @@ function App() {
         flexDirection: 'column', 
         gap: '20px',
         height: 'auto',
-        pointerEvents: 'auto'
+        pointerEvents: 'auto',
+        overflowY: 'auto'
       }}>
         <h1 style={{ color: '#00ffcc', letterSpacing: '4px', fontSize: '22px', margin: 0 }}>QUAKEPROOF</h1>
         <div style={{ height: '2px', background: 'linear-gradient(90deg, #00ffcc, transparent)' }} />
