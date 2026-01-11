@@ -208,7 +208,7 @@ function App() {
     const res = await fetch("/api/recommend", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ detections })
+      body: JSON.stringify({ detections: detectedObjects.map(obj => obj.type) })
     });
     const data = await res.json();
     setAdvice(data.advice);
@@ -244,7 +244,7 @@ function App() {
           audio={false}
           screenshotFormat="image/jpeg"
           videoConstraints={{
-            facingMode: "environment",
+            facingMode: "environment", // This forces the REAR camera
             width: { ideal: 640 },
             height: { ideal: 480 }
           }}
@@ -252,7 +252,7 @@ function App() {
             position: 'absolute',
             top: 0,
             left: 0,
-            width: '100vw',
+            width: '100vw', // Make it responsive for phone screens
             height: 'auto',
             zIndex: 1
           }}
@@ -268,8 +268,8 @@ function App() {
             left: 0,
             width: '640px',
             height: '480px',
-            zIndex: 2,
-            pointerEvents: 'none'
+            zIndex: 2, // Sits on top of the webcam
+            pointerEvents: 'none' // Allows clicks to pass through to the video if needed
           }}
         />
       </div>
