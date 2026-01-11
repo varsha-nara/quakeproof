@@ -224,7 +224,7 @@ function App() {
       const res = await fetch("/api/state");
       const state = await res.json();
       
-      if (mode === "phone" && typeof state.magnitude === "number") {
+      if (mode === "phone") {
         setMagnitude(state.magnitude);
       }
 
