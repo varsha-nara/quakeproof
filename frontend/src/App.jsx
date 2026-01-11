@@ -17,18 +17,7 @@ const DENSITIES = {
   monitor: 50,
   chair: 70,
   lamp: 40,
-  plant: 120,
   default: 80
-}
-
-function PhotoPlane({ url }) {
-  const texture = useTexture(url)
-  return (
-    <mesh position={[0, 10, -15]} scale={[45, 25, 1]}>
-      <planeGeometry />
-      <meshBasicMaterial map={texture} transparent opacity={0.2} />
-    </mesh>
-  )
 }
 
 function Room({ magnitude }) {
@@ -67,7 +56,7 @@ function App() {
   const [previewImage, setPreviewImage] = useState(null)
   const [detectedObjects, setDetectedObjects] = useState([])
   const [loading, setLoading] = useState(false)
-  const [status, setStatus] = useState("System Standby: Upload video...")
+  const [status, setStatus] = useState("Waiting for video upload...")
 
 
   const analyzeVideo = async (file) => {
@@ -99,14 +88,14 @@ function App() {
         if (time === 0.1) setPreviewImage(canvas.toDataURL('image/jpeg'))
       }
 
-      setStatus("Gemini 2.5 Flash: Mapping Room...")
+      setStatus("Mapping Room...")
 
       // Using the latest available stable endpoint
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
 
       const prompt = `
         Act as a 3D LiDAR scanner. Identify major structural objects:
-        Types: [bookshelf, refrigerator, chair, table, lamp, tv, plant, sofa, monitor]
+        Types: [bookshelf, refrigerator, chair, table, lamp, tv, sofa, monitor]
         
         For each object, estimate:
         1. type: (from the list above)
@@ -289,13 +278,19 @@ function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#050505', overflow: 'hidden', fontFamily: 'monospace' }}>
+      <style>{`
+        body { margin: 0; padding: 0; overflow: hidden; background: #050505; }
+        canvas { display: block; width: 100vw !important; height: 100vh !important; }
+      `}</style>
+
       {/* Sidebar UI */}
       <div style={{
-        position: 'absolute', zIndex: 10, padding: '30px', color: 'white',
-        background: 'rgba(10,10,10,0.95)', width: '350px', height: '100vh',
-        borderRight: '1px solid #333', display: 'flex', flexDirection: 'column', gap: '20px'
+        left: '20px', top: '20px', position: 'absolute', zIndex: 10, padding: '30px', color: 'white',
+        background: 'rgba(10,10,10,0.55)', width: 'auto',
+        borderRight: '1px solid #333', display: 'flex', flexDirection: 'column', gap: '20px',
+        height: 'auto'
       }}>
-        <h1 style={{ color: '#00ffcc', letterSpacing: '4px', fontSize: '22px', margin: 0 }}>QUAKEPROOF AI</h1>
+        <h1 style={{ color: '#00ffcc', letterSpacing: '4px', fontSize: '22px', margin: 0 }}>QUAKEPROOF</h1>
         <div style={{ height: '2px', background: 'linear-gradient(90deg, #00ffcc, transparent)' }} />
         
         <div style={{ padding: '15px', background: '#111', borderRadius: '4px', border: '1px solid #222' }}>
@@ -303,7 +298,7 @@ function App() {
           <p style={{ fontSize: '12px', color: loading ? '#ffcc00' : '#00ffcc', marginTop: '10px' }}>{status}</p>
         </div>
 
-        <div>
+        {/* <div>
           <label className="block mb-4 text-xl">Simulate Intensity: {magnitude}</label>
           <input 
             type="range" min="0" max="9" step="0.1" 
@@ -321,23 +316,38 @@ function App() {
           />
           
           <button onClick={getAdvice} className="mt-8 bg-blue-600 p-4 w-full rounded-xl text-2xl font-bold">
-            Generate AI Remediation
+            Get Improvements
           </button>
           
           {advice && <div className="mt-4 p-6 bg-gray-800 rounded-lg border-l-4 border-blue-500">{advice}</div>}
-        </div>
+        </div> */}
 
         {detectedObjects.length > 0 && (
           <div style={{ background: '#111', padding: '20px', borderRadius: '4px' }}>
             <label style={{ fontSize: '11px', color: '#888' }}>SEISMIC INTENSITY (Mw)</label>
             <input 
-                type="range" min="0" max="9.5" step="0.1" 
+                type="range" min="0" max="9" step="0.1" 
                 style={{ width: '100%', accentColor: '#00ffcc', marginTop: '10px' }} 
                 value={magnitude} 
-                onChange={(e) => setMagnitude(parseFloat(e.target.value))} 
-            />
+                onChange={async (e) => {
+                const val = e.target.value;
+                setMagnitude(val);
+                await fetch("/api/update_magnitude", {
+                  method: "POST",
+                  headers: {"Content-Type": "application/json"},
+                  body: JSON.stringify({magnitude: val})
+                });
+              }}
+              />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px', color: '#00ffcc' }}>
-              <span>0</span><span>{magnitude}</span><span>9.5</span>
+              <span>0</span><span style={{ 
+                color: 'white', 
+                border: '1px solid #00ffcc', 
+                padding: '2px 8px', 
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}>{magnitude}</span><span>9</span>
             </div>
             <button 
                 onClick={() => setMagnitude(0)} 
@@ -345,17 +355,22 @@ function App() {
             >
                 STOP SIMULATION
             </button>
+            <button onClick={getAdvice} className="mt-8 bg-blue-600 p-4 w-full rounded-xl text-2xl font-bold">
+              Get Improvements
+            </button>
+            
+            {advice && <div className="mt-4 p-6 bg-gray-800 rounded-lg border-l-4 border-blue-500">{advice}</div>}
           </div>
         )}
       </div>
 
-      <Canvas shadows camera={{ position: [15, 15, 15], fov: 45 }}>
+      <Canvas shadows camera={{ position: [10, 10, 10], fov: 45 }}>
         <Sky sunPosition={[100, 10, 100]} />
         <ambientLight intensity={0.5} />
         <pointLight position={[20, 20, 20]} castShadow intensity={1.5} />
 
         <Suspense fallback={null}>
-          {previewImage && <PhotoPlane url={previewImage} />}
+          {previewImage}
 
           <Physics gravity={[0, -9.81, 0]}>
             <Room magnitude={magnitude} />
@@ -367,7 +382,7 @@ function App() {
               return (
                 <RigidBody
                   key={`${obj.type}-${i}`}
-                  position={[obj.x, obj.size[1] / 2 + 3, obj.z]}
+                  position={[obj.x, obj.size[1] / 2, obj.z]}
                   colliders="cuboid"
                   mass={mass}
                   restitution={0.1}
@@ -397,48 +412,6 @@ function App() {
         <Environment preset="night" />
       </Canvas>
     </div>
-
-
-    // <div className="p-10 bg-gray-900 text-white min-h-screen">      
-    //   {/* 1. Dashboard Visualization (Instead of Webcam) */}
-    //   <div className="grid grid-cols-2 gap-8">
-    //     <div className="bg-black p-4 rounded-xl border border-blue-500">
-    //       <h2 className="mb-4">Live Object Stream</h2>
-    //       <ul>
-    //         {detections.map(d => (
-    //           <li key={d.id} className={d.risk > 50 ? "text-red-400" : "text-green-400"}>
-    //             {d.label}: {d.risk}% Fall Risk
-    //           </li>
-    //         ))}
-    //       </ul>
-    //     </div>
-
-    //     {/* 2. Controls */}
-        // <div>
-        //   <label className="block mb-4 text-xl">Simulate Intensity: {magnitude}</label>
-        //   <input 
-        //     type="range" min="0" max="9" step="0.1" 
-        //     value={magnitude} 
-        //     onChange={async (e) => {
-        //       const val = e.target.value;
-        //       setMagnitude(val);
-        //       await fetch("/api/update_magnitude", {
-        //         method: "POST",
-        //         headers: {"Content-Type": "application/json"},
-        //         body: JSON.stringify({magnitude: val})
-        //       });
-        //     }}
-        //     className="w-full h-4 bg-blue-700 rounded-lg appearance-none cursor-pointer"
-        //   />
-          
-        //   <button onClick={getAdvice} className="mt-8 bg-blue-600 p-4 w-full rounded-xl text-2xl font-bold">
-        //     Generate AI Remediation
-        //   </button>
-          
-        //   {advice && <div className="mt-4 p-6 bg-gray-800 rounded-lg border-l-4 border-blue-500">{advice}</div>}
-        // </div>
-    //   </div>
-    // </div>
   );
 
 }
