@@ -10,44 +10,68 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false); // New lock state
   const [mode] = useState(new URLSearchParams(window.location.search).get("mode") || "laptop");
 
-  const processFrame = async () => {
-    // If a request is already out, don't send another one yet
-    if (isProcessing || !webcamRef.current) return;
+const magRef = useRef(magnitude);
+useEffect(() => {
+  magRef.current = magnitude;
+}, [magnitude]);
 
-    const imageSrc = webcamRef.current.getScreenshot();
-    if (!imageSrc) return;
+const processFrame = async () => {
+  // Guard clause: if webcam isn't ready, wait and try again
+  if (!webcamRef.current) {
+    setTimeout(processFrame, 500);
+    return;
+  }
 
-    setIsProcessing(true); // Lock
-    try {
+  // If we are already mid-fetch, don't do anything (The Lock)
+  if (isProcessing) return;
+
+  setIsProcessing(true);
+  try {
+    const imageSrc = webcamRef.current.getScreenshot({
+      width: 320, // Keep this small!
+      height: 240
+    });
+
+    if (imageSrc) {
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: imageSrc, magnitude: parseFloat(magnitude) })
+        // Use magRef.current so we don't depend on 'magnitude' state in the effect
+        body: JSON.stringify({ image: imageSrc, magnitude: parseFloat(magRef.current) })
       });
 
-      if (!response.ok) throw new Error("Backend error");
-
-      const data = await response.json();
-      setDetections(data.detections);
-      drawOnCanvas(data.detections);
-    } catch (err) {
-      console.error("Analysis failed:", err);
-    } finally {
-      setIsProcessing(false); // Unlock
+      if (response.status === 429) {
+          await new Promise(r => setTimeout(r, 2000));
+      } else if (response.ok) {
+          const data = await response.json();
+          setDetections(data.detections);
+          drawOnCanvas(data.detections);
+      }
+      imageSrc = null
     }
-  };
+  } catch (err) {
+    console.error("Analysis stalled, retrying...", err);
+  } finally {
+    setIsProcessing(false);
+    setTimeout(processFrame, 300); 
+  }
+};
 
+// Start the chain ONCE on mount
 useEffect(() => {
-  const interval = setInterval(processFrame, 200); // 5 FPS is plenty for a hackathon
-  return () => clearInterval(interval);
-}, [magnitude]); // This restarts the loop when magnitude changes
+  processFrame();
+  // Empty dependency array ensures this loop never "restarts" and stacks up
+}, []);
 
   const drawOnCanvas = (dets) => {
     const ctx = canvasRef.current.getContext("2d");
-    ctx.clearRect(0, 0, 640, 480);
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     ctx.font = "20px Arial";
+    if (!dets || dets.length === 0) return;
+
     dets.forEach(d => {
-      const [x1, y1, x2, y2] = d.bbox;
+      if (!d.bbox) return;
+      const [x1, y1, x2, y2] = d.bbox.map(coord => coord * 2);
       ctx.strokeStyle = d.risk > 70 ? "red" : d.risk > 30 ? "orange" : "green";
       ctx.lineWidth = 3;
       ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);

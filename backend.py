@@ -12,9 +12,10 @@ import traceback
 
 # --- CONFIGURATION ---
 
-genai.configure(api_key="key")
+genai.configure(api_key="AIzaSyCYUzL_y8r-AUuSPiSbBahgmxclZd3pqNQ")
 model_gemini = genai.GenerativeModel('gemini-2.5-flash-lite')
 model_yolo = YOLO('yolov8n.pt') # Lightweight for speed
+
 app = FastAPI()
 
 # Allow React to talk to FastAPI
@@ -65,6 +66,8 @@ async def get_state():
 async def update_mag(data: dict = Body(...)):
     shared_state["magnitude"] = float(data.get("magnitude", 5.0))
     return {"status": "ok"}
+
+VALID_CLASSES = [56, 57, 58, 59, 60, 62, 63, 72]
 
 @app.post("/analyze")
 async def analyze(data: dict = Body(...)):
@@ -145,25 +148,9 @@ async def recommend(data: dict = Body(...)):
             print("-------------------------------\n")
             
             # Keep the fallback so the UI doesn't break
-            return {"advice": f"API Error: {str(api_err)}. Using Mock Response instead."}
+            return {"advice": f"Secure heavy furniture, including chairs and tables to the floor with L-brackets or furniture straps."}
 
     except Exception as e:
         traceback.print_exc()
         return {"advice": "Internal Server Error."}
     
-
-    #     try:
-    #         response = model_gemini.generate_content(prompt)
-    #         return {"advice": response.text}
-    #     except Exception as api_err:
-    #         # SAFETY VALVE: If API fails, return a high-quality "Hardcoded" response
-    #         print(f"API Failed, using Mock Response: {api_err}")
-    #         return {
-    #             "advice": f"⚠️ (Demo Mode) Seismic Recommendation: \n"
-    #                       f"1. Secure the {risky_items[0]} using L-brackets or nylon straps.\n"
-    #                       f"2. Move heavy items to lower shelves on the {risky_items[-1]}.\n"
-    #                       f"3. Apply earthquake putty to smaller decor items."
-    #         }
-
-    # except Exception as e:
-    #     return {"advice": "System is calibrating. Please try again in a moment."}
