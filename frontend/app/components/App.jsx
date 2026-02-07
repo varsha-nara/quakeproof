@@ -4,10 +4,6 @@ import Webcam from 'react-webcam';
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
 import { OrbitControls, Environment, Sky, Grid, Text } from '@react-three/drei'
-import { GoogleGenerativeAI } from "@google/generative-ai"
-
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY
-const genAI = new GoogleGenerativeAI(API_KEY)
 
 const DENSITIES = {
   refrigerator: 300,
@@ -65,6 +61,17 @@ function App() {
     setMode(params.get("mode") || "laptop");
   }, []);
 
+  async function generateRoomData(prompt, frames) {
+    const res = await fetch("/api/extract", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, frames })
+    });
+    const data = await res.json();
+    if (data.text) return data.text;
+    throw new Error(data.error || "Unknown AI error");
+  }
+
   const analyzeVideo = async (file) => {
     setLoading(true)
     setStatus("Extracting Spatial Data...")
@@ -96,8 +103,6 @@ function App() {
 
       setStatus("Mapping Room...")
 
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
-
       const prompt = `
         Act as a 3D LiDAR scanner. Identify major structural objects:
         Types: [bookshelf, refrigerator, chair, table, lamp, tv, sofa, monitor]
@@ -111,11 +116,7 @@ function App() {
         Return ONLY a JSON array: [{"type": "table", "size": [2.0, 0.8, 1.2], "color": "#ffffff", "x": -2, "z": -4}]
       `
 
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }, ...frames] }]
-      })
-
-      const text = result.response.text()
+      const text = await generateRoomData(prompt, frames)
       const jsonMatch = text.match(/\[.*\]/s)
       if (!jsonMatch) throw new Error("Invalid AI Spatial Response")
 
@@ -138,7 +139,6 @@ function App() {
       setLoading(false)
     }
   }
-
   
   const magRef = useRef(magnitude);
   useEffect(() => {
@@ -277,7 +277,7 @@ function App() {
   }
 
   return (
-    <div style={{ width: '100vw', height: '100vh', background: '#050505', overflow: 'hidden', fontFamily: 'monospace', position: 'relative' }}>
+    <div style={{ width: '100vw', height: '100vh', background: '#050505', overflow: 'hidden', fontFamily: 'monospace', position: 'relative', marginTop: '0' }}>
       {/* Sidebar UI */}
       <div style={{
         left: '20px', 
@@ -292,9 +292,9 @@ function App() {
         display: 'flex', 
         flexDirection: 'column', 
         gap: '20px',
-        height: 'auto',
+        maxHeight: 'calc(100vh - 40px)',
         pointerEvents: 'auto',
-        overflowY: 'auto'
+        overflowY: 'auto',
       }}>
         <h1 style={{ color: '#00ffcc', letterSpacing: '4px', fontSize: '22px', margin: 0 }}>QUAKEPROOF</h1>
         <div style={{ height: '2px', background: 'linear-gradient(90deg, #00ffcc, transparent)' }} />
@@ -366,7 +366,7 @@ function App() {
               Get Improvements
             </button>
             
-            {advice && <div style={{ marginTop: '16px', padding: '24px', background: '#1f2937', borderRadius: '8px', borderLeft: '4px solid #3b82f6' }}>{advice}</div>}
+            {advice && <div style={{ marginTop: '16px', padding: '24px', maxHeight: '200px', overflowY: 'auto', background: '#1f2937', borderRadius: '8px', borderLeft: '4px solid #3b82f6' }}>{advice}</div>}
           </div>
         )}
       </div>

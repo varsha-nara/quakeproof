@@ -20,7 +20,7 @@ export default function Home() {
         {/* Section 1: Hero with Tectonic Gradient */}
         <section id="hero" className="relative flex min-h-screen w-full flex-col items-center justify-center px-6 overflow-hidden">
           {/* Background Gradient Layer */}
-          <div className="absolute inset-0 -z-10 bg-gradient-to-br from-slate-50 via-white to-emerald-50/50 dark:from-slate-950 dark:via-black dark:to-emerald-950/30 animate-tectonic" />
+          <div className="absolute inset-0 -z-10 bg-linear-to-br from-slate-50 via-white to-emerald-50/50 dark:from-slate-950 dark:via-black dark:to-emerald-950/30 animate-tectonic" />
           
           <div className="max-w-3xl w-full text-center sm:text-left">
             <h1 className="text-5xl md:text-7xl font-black leading-none tracking-tighter mb-6">

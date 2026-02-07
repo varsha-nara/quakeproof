@@ -49,9 +49,9 @@ export default function Navbar() {
 
     return(
         <nav className="fixed top-0 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md z-50 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-4xl mx-auto px-6 py-2 flex justify-between items-center">
+        <div className="max-w-4xl mx-auto px-6 py-1 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Image className="dark:invert" src="/file.svg" alt="Logo" width={100} height={100} />
+            <Image className="dark:invert" src="/file.svg" alt="Logo" width={120} height={120} style={{ marginTop: '-10px', marginBottom: '-10px' }}/>
             <span className="font-bold tracking-tighter text-xl text-slate-900 dark:text-white uppercase"></span>
           </div>
           <ul className="flex gap-8 font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
