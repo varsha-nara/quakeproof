@@ -87,7 +87,7 @@ async def analyze(data: dict = Body(...)):
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
         # 2. YOLO Tracking
-        results = model_yolo.track(img, persist=True)[0]
+        results = model_yolo.predict(img, conf=0.3, imgsz=320)[0]
         
         # 3. Find Scaling Ratio (Look for a door or chair)
         ratio = 0.002 # Default fallback
