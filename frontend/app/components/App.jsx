@@ -368,7 +368,7 @@ function App() {
         <pointLight position={[20, 20, 20]} castShadow intensity={1.5} />
 
         <Suspense fallback={null}>
-          <img src={previewImage} />
+          {previewImage}
 
           <Physics gravity={[0, -9.81, 0]}>
             <Room magnitude={magnitude} />
