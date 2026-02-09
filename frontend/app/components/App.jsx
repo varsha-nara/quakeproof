@@ -16,7 +16,7 @@ const DENSITIES = {
   lamp: 40,
   default: 80
 }
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_API;
 
 function Room({ magnitude }) {
   const rigidBody = useRef()
@@ -62,71 +62,74 @@ function App() {
     setMode(params.get("mode") || "laptop");
   }, []);
 
-  async function generateRoomData(prompt, frames) {
-    const res = await fetch(`${BACKEND_URL}/extract`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, frames })
-    });
-    const data = await res.json();
-    if (data.text) return data.text;
-    throw new Error(data.error || "Unknown AI error");
-  }
+  useEffect(() => {
+    const wakeUpServer = async () => {
+      try {
+        // Just a simple GET to trigger the Render instance
+        await fetch(`${BACKEND_URL}/state`);
+        console.log("Backend instance warmed up.");
+      } catch (err) {
+        console.error("Server is still sleeping or unreachable.");
+      }
+    };
+
+    wakeUpServer();
+  }, []);
 
   const analyzeVideo = async (file) => {
-  setLoading(true)
-  setStatus("Extracting Spatial Data...")
+    setLoading(true)
+    setStatus("Extracting Spatial Data...")
 
-  try {
-    const prompt = `
-      Act as a 3D LiDAR scanner. Identify major structural objects:
-      Types: [bookshelf, refrigerator, chair, table, lamp, tv, sofa, monitor]
-      
-      For each object, estimate:
-      1. type
-      2. size: [width, height, depth] in meters
-      3. color: HEX
-      4. x, z coordinates (-12 to 12)
+    try {
+      const prompt = `
+        Act as a 3D LiDAR scanner. Identify major structural objects:
+        Types: [bookshelf, refrigerator, chair, table, lamp, tv, sofa, monitor]
+        
+        For each object, estimate:
+        1. type
+        2. size: [width, height, depth] in meters
+        3. color: HEX
+        4. x, z coordinates (-12 to 12)
 
-      Return ONLY valid JSON array.
-    `
+        Return ONLY valid JSON array.
+      `
 
-    const form = new FormData()
-    form.append("video", file)
-    form.append("prompt", prompt)
+      const form = new FormData()
+      form.append("video", file)
+      form.append("prompt", prompt)
 
-    setStatus("Mapping Room...")
+      setStatus("Mapping Room...")
 
-    const res = await fetch(`${BACKEND_URL}/extract`, {
-      method: "POST",
-      body: form
-    })
+      const res = await fetch(`${BACKEND_URL}/extract`, {
+        method: "POST",
+        body: form
+      })
 
-    const data = await res.json()
-    if (!data.text) throw new Error(data.error || "No AI response")
+      const data = await res.json()
+      if (!data.text) throw new Error(data.error || "No AI response")
 
-    const jsonMatch = data.text.match(/\[.*\]/s)
-    if (!jsonMatch) throw new Error("Invalid AI Spatial Response")
+      const jsonMatch = data.text.match(/\[.*\]/s)
+      if (!jsonMatch) throw new Error("Invalid AI Spatial Response")
 
-    const parsed = JSON.parse(jsonMatch[0])
+      const parsed = JSON.parse(jsonMatch[0])
 
-    const processed = parsed.map(obj => ({
-      ...obj,
-      size: obj.size.map(s => Math.max(s * 1.2, 0.5)),
-      x: Number(obj.x) || 0,
-      z: Number(obj.z) || 0
-    }))
+      const processed = parsed.map(obj => ({
+        ...obj,
+        size: obj.size.map(s => Math.max(s * 1.2, 0.5)),
+        x: Number(obj.x) || 0,
+        z: Number(obj.z) || 0
+      }))
 
-    setDetectedObjects(processed)
-    setStatus(`Reconstruction Complete: ${processed.length} Hazards Found.`)
+      setDetectedObjects(processed)
+      setStatus(`Reconstruction Complete: ${processed.length} Hazards Found.`)
 
-  } catch (err) {
-    console.error(err)
-    setStatus("Error: " + err.message)
-  } finally {
-    setLoading(false)
+    } catch (err) {
+      console.error(err)
+      setStatus("Error: " + err.message)
+    } finally {
+      setLoading(false)
+    }
   }
-}
   
   const magRef = useRef(magnitude);
   useEffect(() => {

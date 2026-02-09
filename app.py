@@ -3,10 +3,13 @@ import numpy as np
 import base64
 import random
 import google.generativeai as genai
-from fastapi import FastAPI, Body
+import tempfile
+from PIL import Image
+from fastapi import FastAPI, Body, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from ultralytics import YOLO
 from fastapi.responses import JSONResponse
+
 
 import traceback
 import os
@@ -30,12 +33,12 @@ origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://flintiest-interdepartmentally-corene.ngrok-free.dev",
-    "https://quakeproof.vercel.app",
+    "https://quakeproof*.vercel.app",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, # Be specific here
+    allow_origins=["*"], # Be specific here
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
