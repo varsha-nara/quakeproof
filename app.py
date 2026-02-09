@@ -30,7 +30,7 @@ origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://flintiest-interdepartmentally-corene.ngrok-free.dev",
-    "https://quakeproof-2evp.vercel.app",
+    "https://quakeproof.vercel.app",
 ]
 
 app.add_middleware(
