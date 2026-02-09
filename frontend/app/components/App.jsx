@@ -74,72 +74,59 @@ function App() {
   }
 
   const analyzeVideo = async (file) => {
-    setLoading(true)
-    setStatus("Extracting Spatial Data...")
+  setLoading(true)
+  setStatus("Extracting Spatial Data...")
 
-    try {
-      const video = document.createElement('video')
-      video.src = URL.createObjectURL(file)
-      video.muted = true
-      video.playsInline = true
-      video.crossOrigin = "anonymous"
-
-      await new Promise(r => video.onloadedmetadata = r)
-
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      const frames = []
-      const captureTimes = [0.1, video.duration * 0.5, video.duration - 0.2]
-
-      for (const time of captureTimes) {
-        video.currentTime = time
-        await new Promise(r => video.onseeked = r)
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
-        ctx.drawImage(video, 0, 0)
-        const base64 = canvas.toDataURL('image/jpeg', 0.4).split(',')[1]
-        frames.push({ inlineData: { data: base64, mimeType: "image/jpeg" } })
-        if (time === 0.1) setPreviewImage(canvas.toDataURL('image/jpeg'))
-      }
-
-      setStatus("Mapping Room...")
-
-      const prompt = `
-        Act as a 3D LiDAR scanner. Identify major structural objects:
-        Types: [bookshelf, refrigerator, chair, table, lamp, tv, sofa, monitor]
-        
-        For each object, estimate:
-        1. type: (from the list above)
-        2. size: [width, height, depth] in meters (Scale them up slightly for presence).
-        3. color: Primary HEX code.
-        4. x, z: Coordinates (-12 to 12).
-
-        Return ONLY a JSON array: [{"type": "table", "size": [2.0, 0.8, 1.2], "color": "#ffffff", "x": -2, "z": -4}]
-      `
-
-      const text = await generateRoomData(prompt, frames)
-      const jsonMatch = text.match(/\[.*\]/s)
-      if (!jsonMatch) throw new Error("Invalid AI Spatial Response")
-
-      const parsed = JSON.parse(jsonMatch[0])
+  try {
+    const prompt = `
+      Act as a 3D LiDAR scanner. Identify major structural objects:
+      Types: [bookshelf, refrigerator, chair, table, lamp, tv, sofa, monitor]
       
-      const processed = parsed.map(obj => ({
-        ...obj,
-        size: obj.size.map(s => Math.max(s * 1.2, 0.5)), 
-        x: Number(obj.x) || 0,
-        z: Number(obj.z) || 0
-      }))
+      For each object, estimate:
+      1. type
+      2. size: [width, height, depth] in meters
+      3. color: HEX
+      4. x, z coordinates (-12 to 12)
 
-      setDetectedObjects(processed)
-      setStatus(`Reconstruction Complete: ${processed.length} Hazards Found.`)
+      Return ONLY valid JSON array.
+    `
 
-    } catch (err) {
-      console.error(err)
-      setStatus("Error: " + err.message)
-    } finally {
-      setLoading(false)
-    }
+    const form = new FormData()
+    form.append("video", file)
+    form.append("prompt", prompt)
+
+    setStatus("Mapping Room...")
+
+    const res = await fetch(`${BACKEND_URL}/extract`, {
+      method: "POST",
+      body: form
+    })
+
+    const data = await res.json()
+    if (!data.text) throw new Error(data.error || "No AI response")
+
+    const jsonMatch = data.text.match(/\[.*\]/s)
+    if (!jsonMatch) throw new Error("Invalid AI Spatial Response")
+
+    const parsed = JSON.parse(jsonMatch[0])
+
+    const processed = parsed.map(obj => ({
+      ...obj,
+      size: obj.size.map(s => Math.max(s * 1.2, 0.5)),
+      x: Number(obj.x) || 0,
+      z: Number(obj.z) || 0
+    }))
+
+    setDetectedObjects(processed)
+    setStatus(`Reconstruction Complete: ${processed.length} Hazards Found.`)
+
+  } catch (err) {
+    console.error(err)
+    setStatus("Error: " + err.message)
+  } finally {
+    setLoading(false)
   }
+}
   
   const magRef = useRef(magnitude);
   useEffect(() => {
@@ -378,7 +365,7 @@ function App() {
         <pointLight position={[20, 20, 20]} castShadow intensity={1.5} />
 
         <Suspense fallback={null}>
-          {previewImage}
+          <img src={previewImage} />
 
           <Physics gravity={[0, -9.81, 0]}>
             <Room magnitude={magnitude} />

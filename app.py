@@ -30,7 +30,7 @@ origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://flintiest-interdepartmentally-corene.ngrok-free.dev",
-    "https://quakeproof.onrender.com",
+    "https://quakeproof-2evp.vercel.app",
 ]
 
 app.add_middleware(
@@ -149,46 +149,49 @@ async def recommend(data: dict = Body(...)):
         traceback.print_exc()
         return JSONResponse(content={"advice": "Internal Server Error."}, status_code=500)
 
+
 @app.post("/extract")
-async def extract(data: dict = Body(...)):
-    """
-    Takes a prompt and optional frames, returns AI-generated content.
-    Compatible with the frontend's analyzeVideo logic.
-    """
+async def extract(
+    video: UploadFile = File(...),
+    prompt: str = Form(...)
+):
     try:
-        from PIL import Image
-        import io
-        
-        prompt_text = data.get("prompt", "")
-        frames = data.get("frames", [])
+        # Save video to temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+            tmp.write(await video.read())
+            video_path = tmp.name
 
-        if not prompt_text:
-            return JSONResponse(content={"error": "No prompt provided"}, status_code=400)
+        # Open video
+        cap = cv2.VideoCapture(video_path)
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-        # Build the content parts - use PIL Images for Gemini
-        parts = [prompt_text]
-        
-        # Add image frames - convert base64 to PIL Image objects
-        for frame in frames:
-            if "inlineData" in frame:
-                inline_data = frame["inlineData"]
-                base64_data = inline_data.get("data")
-                
-                # Decode base64 to PIL Image (Gemini SDK expects PIL Images)
-                image_bytes = base64.b64decode(base64_data)
-                pil_image = Image.open(io.BytesIO(image_bytes))
-                parts.append(pil_image)
-        
-        # Generate content
+        # Pick 3 frames safely
+        indices = [
+            int(frame_count * 0.1),
+            int(frame_count * 0.5),
+            int(frame_count * 0.9),
+        ]
+
+        parts = [prompt]
+
+        for idx in indices:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+            ret, frame = cap.read()
+            if not ret:
+                continue
+
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            pil_img = Image.fromarray(frame)
+            parts.append(pil_img)
+
+        cap.release()
+
         response = model_gemini.generate_content(parts)
-        
         return JSONResponse(content={"text": response.text})
 
     except Exception as e:
-        print("\n--- GEMINI /extract ENDPOINT ERROR ---")
-        print(f"Error type: {type(e).__name__}")
-        print(f"Error message: {str(e)}")
         traceback.print_exc()
-        print("--------------------------------------\n")
-        # Always return valid JSON
-        return JSONResponse(content={"error": f"Gemini API error: {str(e)}"}, status_code=500)
+        return JSONResponse(
+            content={"error": f"Extract failed: {str(e)}"},
+            status_code=500
+        )
