@@ -16,6 +16,7 @@ const DENSITIES = {
   lamp: 40,
   default: 80
 }
+const BACKEND_URL = process.env.BACKEND_URL;
 
 function Room({ magnitude }) {
   const rigidBody = useRef()
@@ -62,7 +63,7 @@ function App() {
   }, []);
 
   async function generateRoomData(prompt, frames) {
-    const res = await fetch("/api/extract", {
+    const res = await fetch(`${BACKEND_URL}/extract`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, frames })
@@ -161,7 +162,7 @@ function App() {
       });
 
       if (imageSrc) {
-        const response = await fetch("/api/analyze", {
+        const response = await fetch(`${BACKEND_URL}/analyze`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ image: imageSrc, magnitude: parseFloat(magRef.current) })
@@ -205,7 +206,7 @@ function App() {
   };
 
   const getAdvice = async () => {
-    const res = await fetch("/api/recommend", {
+    const res = await fetch(`${BACKEND_URL}/recommend`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ detections: detectedObjects.map(obj => obj.type) })
@@ -221,7 +222,7 @@ function App() {
 
   useEffect(() => {
     const sync = async () => {
-      const res = await fetch("/api/state");
+      const res = await fetch(`${BACKEND_URL}/state`);
       const state = await res.json();
       
       if (mode === "phone") {
@@ -339,7 +340,7 @@ function App() {
                 onChange={async (e) => {
                 const val = e.target.value;
                 setMagnitude(val);
-                await fetch("/api/update_magnitude", {
+                await fetch(`${BACKEND_URL}/update_magnitude`, {
                   method: "POST",
                   headers: {"Content-Type": "application/json"},
                   body: JSON.stringify({magnitude: val})
