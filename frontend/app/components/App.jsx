@@ -6,10 +6,10 @@ import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
 import { OrbitControls, Environment, Sky, Grid, Text } from '@react-three/drei'
 
 const DENSITIES = {
-  refrigerator: 300,
-  bookshelf: 180,
+  refrigerator: 150,
+  bookshelf: 90,
   sofa: 100,
-  table: 120,
+  table: 90,
   tv: 60,
   monitor: 50,
   chair: 70,
@@ -81,16 +81,17 @@ function App() {
 
     try {
       const prompt = `
-        Act as a 3D LiDAR scanner. Identify major structural objects:
-        Types: [bookshelf, refrigerator, chair, table, lamp, tv, sofa, monitor]
+        Act as a 3D LiDAR scanner. Map this room for a physics simulation.
+        The floor center is (0,0). The room bounds are -10 to 10.
         
-        For each object, estimate:
-        1. type
-        2. size: [width, height, depth] in meters
-        3. color: HEX
-        4. x, z coordinates (-12 to 12)
-
-        Return ONLY valid JSON array.
+        For each object:
+        1. type: Choose strictly from [bookshelf, refrigerator, chair, table, lamp, tv, sofa, monitor].
+        2. size: [width, height, depth] in meters (Be realistic! A table is ~0.75m tall).
+        3. color: HEX code based on the image.
+        4. x, z: Horizontal coordinates. (0,0) is center. x is left/right, z is front/back.
+        
+        IMPORTANT: Tables are often misidentified as chairs. If it has a large flat top, it is a TABLE.
+        Return ONLY a valid JSON array.
       `
 
       const form = new FormData()
@@ -114,7 +115,7 @@ function App() {
 
       const processed = parsed.map(obj => ({
         ...obj,
-        size: obj.size.map(s => Math.max(s * 1.2, 0.5)),
+        size: obj.size.map(s => Math.max(s * 1.5, 0.5)),
         x: Number(obj.x) || 0,
         z: Number(obj.z) || 0
       }))
