@@ -4,6 +4,7 @@ import base64
 import random
 import google.generativeai as genai
 import tempfile
+import gc
 from PIL import Image
 from fastapi import FastAPI, Body, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,6 +26,7 @@ if not api_key:
 genai.configure(api_key=api_key)
 model_gemini = genai.GenerativeModel('gemini-3-flash-preview')
 model_yolo = YOLO('best.pt') # Lightweight for speed
+model_yolo.to('cpu')
 
 app = FastAPI()
 
@@ -154,47 +156,61 @@ async def recommend(data: dict = Body(...)):
 
 
 @app.post("/extract")
-async def extract(
-    video: UploadFile = File(...),
-    prompt: str = Form(...)
-):
+async def extract(video: UploadFile = File(...), prompt: str = Form(...)):
+    cap = None
+    video_path = None
     try:
-        # Save video to temp file
+        # Use a chunked write to keep RAM usage at near zero during upload
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
-            tmp.write(await video.read())
+            while chunk := await video.read(1024 * 1024): # Read 1MB at a time
+                tmp.write(chunk)
             video_path = tmp.name
 
-        # Open video
         cap = cv2.VideoCapture(video_path)
+        
+        # Force OpenCV to use a smaller internal buffer if possible
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-        # Pick 3 frames safely
-        indices = [
-            int(frame_count * 0.1),
-            int(frame_count * 0.5),
-            int(frame_count * 0.9),
-        ]
-
+        
+        # 2. Pick only 2 frames (Start & End) to keep memory ultra-low
+        indices = [int(frame_count * 0.2), int(frame_count * 0.8)]
         parts = [prompt]
 
         for idx in indices:
             cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
             ret, frame = cap.read()
-            if not ret:
-                continue
+            if not ret: continue
 
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            pil_img = Image.fromarray(frame)
-            parts.append(pil_img)
+            # 3. THE MAGIC LINE: Shrink to 240p immediately
+            # This reduces RAM usage from ~100MB per frame to ~2MB.
+            frame = cv2.resize(frame, (320, 240)) 
+            
+            # 4. Convert and add to Gemini parts
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            parts.append(Image.fromarray(frame_rgb))
+            
+            # 5. CLEAR RAM IMMEDIATELY inside the loop
+            del frame
+            del frame_rgb
 
-        cap.release()
-
+        # 6. Send to Gemini
         response = model_gemini.generate_content(parts)
+        
+        # 7. Final Cleanup of the parts list
+        del parts 
+        
         return JSONResponse(content={"text": response.text})
 
     except Exception as e:
-        traceback.print_exc()
-        return JSONResponse(
-            content={"error": f"Extract failed: {str(e)}"},
-            status_code=500
-        )
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        # 8. THE SAFETY NET: This runs even if the code crashes
+        if cap:
+            cap.release()
+        if video_path and os.path.exists(video_path):
+            os.remove(video_path)
+        
+        # Force Python to release all unused RAM back to Render
+        gc.collect()

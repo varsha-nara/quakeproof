@@ -50,7 +50,6 @@ function App() {
   const [advice, setAdvice] = useState("");
   const [detections, setDetections] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null)
   const [detectedObjects, setDetectedObjects] = useState([])
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState("Waiting for video upload...")
@@ -204,11 +203,6 @@ function App() {
     const data = await res.json();
     setAdvice(data.advice);
   };
-
-  useEffect(() => {
-    const interval = setInterval(processFrame, 500);
-    return () => clearInterval(interval);
-  }, [magnitude]);
 
   useEffect(() => {
     const sync = async () => {
@@ -368,8 +362,6 @@ function App() {
         <pointLight position={[20, 20, 20]} castShadow intensity={1.5} />
 
         <Suspense fallback={null}>
-          {previewImage}
-
           <Physics gravity={[0, -9.81, 0]}>
             <Room magnitude={magnitude} />
 
