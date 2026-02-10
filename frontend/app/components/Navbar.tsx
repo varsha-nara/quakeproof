@@ -1,6 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from "next/navigation";
 
 interface Quake {
   id: string;
@@ -39,19 +40,20 @@ export default function Navbar() {
     const interval = setInterval(fetchQuakes, 300000); // Refresh every 5 minutes
     return () => clearInterval(interval);
     }, []);
-    
-    const scrollToSection = (id: string) => {
-      const element = document.getElementById(id);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
+
+    const router = useRouter();
+
+    const scrollToSection = (hash: string) => {
+      router.push(`/#${hash}`);
     };
 
     return(
         <nav className="fixed top-0 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md z-50 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-4xl mx-auto px-6 py-1 flex justify-between items-center">
           <div className="flex items-center gap-2">
+            <button onClick={() => scrollToSection('hero')}>
             <Image className="dark:invert" src="/file.svg" alt="Logo" width={120} height={120} style={{ marginTop: '-10px', marginBottom: '-10px' }}/>
+            </button>
             <span className="font-bold tracking-tighter text-xl text-slate-900 dark:text-white uppercase"></span>
           </div>
           <ul className="flex gap-8 font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">

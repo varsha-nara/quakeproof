@@ -27,8 +27,9 @@ export default function Home() {
               STAY <span className="text-emerald-500">GROUNDED.</span><br />
               STAY SAFE.
             </h1>
-            <p className="max-w-md text-xl leading-relaxed text-zinc-600 dark:text-zinc-400 mb-10">
-              Real-time seismic monitoring and structural safety alerts designed for the modern world.
+            <p className="max-w-xl text-xl leading-relaxed text-zinc-600 dark:text-zinc-400 mb-10">
+              Personalized, interactive 3D earthquake simulator with smart suggestions tailored to your room! 
+              Test how your room fares against earthquakes of varying magnitudes and see top actionable improvements.
             </p>
             <button 
               onClick={() => router.push("/quake")}
@@ -45,13 +46,11 @@ export default function Home() {
             <div>
               <h2 className="text-4xl font-black mb-6 border-l-4 border-emerald-500 pl-4">SEISMIC INTEGRITY</h2>
               <p className="text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-                QuakeProof uses advanced sensors and tectonic data to provide 
-                up-to-the-second information on ground stability. Our mission is 
-                to simplify complex geological data into actionable safety steps.
+                QuakeProof is the next step beyond "Drop, Cover, and Hold on." We help people, espeically children, understand their personal risk, visualize real impacts, or take meaningful action before disaster strikes.
               </p>
             </div>
             <div className="aspect-square bg-zinc-100 dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-center">
-               <span className="text-zinc-400 italic text-sm">[Data Visualization Placeholder]</span>
+               <img src="sample-app.png" className="w-full h-full object-cover overflow-hidden"/>
             </div>
           </div>
         </section>
